@@ -1,0 +1,48 @@
+name: User Specific S3 Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      user_to_deploy:
+        description: 'Specify which user to deploy (a or b)'
+        required: true
+        type: choice
+        options:
+          - a
+          - b
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials for A_USER
+        if: ${{ github.event.inputs.user_to_deploy == 'a' }}
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.A_USER_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.A_USER_AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Deploy A_FILES to A_BUCKET
+        if: ${{ github.event.inputs.user_to_deploy == 'a' }}
+        run: |
+          echo "Deploying a_files to ${{ secrets.A_BUCKET_NAME }}"
+          aws s3 sync a_files/ s3://${{ secrets.A_BUCKET_NAME }}/ --delete
+
+      - name: Configure AWS Credentials for B_USER
+        if: ${{ github.event.inputs.user_to_deploy == 'b' }}
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.B_USER_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.B_USER_AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Deploy B_FILES to B_BUCKET
+        if: ${{ github.event.inputs.user_to_deploy == 'b' }}
+        run: |
+          echo "Deploying b_files to ${{ secrets.B_BUCKET_NAME }}"
+          aws s3 sync b_files/ s3://${{ secrets.B_BUCKET_NAME }}/ --delete
